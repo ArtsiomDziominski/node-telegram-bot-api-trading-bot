@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import { handleCommands } from './handlers/commands';
 import { handleCommandsWS } from "./handlers/commandsWS";
 import { handleMessages } from "./handlers/messages";
+import { handleAuth } from "./handlers/auth";
 import WebSocketClient from "./services/websocketClient";
 
 dotenv.config();
@@ -17,6 +18,8 @@ if (!token) {
 	handleCommands(bot);
 	handleCommandsWS(bot);
 	handleMessages(bot);
+	handleAuth(bot);
+	console.log('Started telegram bot')
 }
 
 
