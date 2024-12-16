@@ -1,10 +1,16 @@
 import WebSocket from 'ws';
 import TelegramBot from 'node-telegram-bot-api';
+import fs from "fs";
+
+interface UserSocket {
+	ws: WebSocket;
+	initialMessage?: object;
+}
 
 class WebSocketClient {
 	private static instance: WebSocketClient;
 	private bot: TelegramBot;
-	private userSockets: Map<string, WebSocket> = new Map();
+	private userSockets: Map<string, UserSocket> = new Map();
 
 	private constructor(bot: TelegramBot) {
 		this.bot = bot;
@@ -35,7 +41,8 @@ class WebSocketClient {
 
 			ws.on('message', (message: string) => {
 				const msgObj = JSON.parse(message);
-				if (msgObj?.type !== 'NOTIFICATION_POSITION_RISK') this.bot.sendMessage(chatId, msgObj?.data?.message || msgObj?.message || 'error');
+				const blockNotification = ['NOTIFICATION_POSITION_RISK', 'NOTIFICATION_AUTH'];
+				if (!blockNotification.includes(msgObj?.type) && msgObj?.data?.message) this.bot.sendMessage(chatId, msgObj?.data?.message || 'error');
 			});
 
 			ws.on('error', (error: any) => {
@@ -43,44 +50,47 @@ class WebSocketClient {
 			});
 
 			ws.on('close', () => {
-				console.log(`WebSocket для пользователя ${chatId} отключен. Попытка переподключения через 30 секунд...`);
+				console.log(`WebSocket для пользователя ${chatId} отключен. Попытка переподключения через 10 секунд...`);
 				this.userSockets.delete(chatId);
 
 				setTimeout(() => {
 					console.log(`Переподключение WebSocket для пользователя ${chatId}...`);
 					connect();
-				}, 30000);
+				}, 10000);
 			});
 
-			this.userSockets.set(chatId, ws);
+			try {
+				let data = JSON.stringify([...this.userSockets.entries()]);
+				fs.writeFileSync('files/usersws.json', data);
+			} catch (e) {
+				console.log(new Date());
+				console.log(e);
+				setTimeout(() => connect(), 10000);
+			}
 		};
 
 		connect();
 	}
 
-
 	public removeUser(chatId: string): void {
-		const ws = this.userSockets.get(chatId);
-		if (ws) {
-			ws.close();
+		const userSocket = this.userSockets.get(chatId);
+		if (userSocket?.ws) {
+			userSocket.ws.close();
 			this.userSockets.delete(chatId);
 			console.log(`Пользователь ${chatId} отключен от WebSocket.`);
 		}
 	}
 
 	public sendMessage(chatId: string, message: object): void {
-		const ws = this.userSockets.get(chatId);
-		if (ws && ws.readyState === WebSocket.OPEN) {
-			ws.send(JSON.stringify(message));
-		} else {
-			this.addUser(chatId, message)
-		}
+		const userSocket = this.userSockets.get(chatId);
+		if (userSocket?.ws && userSocket.ws.readyState === WebSocket.OPEN) userSocket.ws.send(JSON.stringify(message));
+		else this.addUser(chatId, message);
 	}
 
-	public getStatus(chatId: string): string {
-		const ws = this.userSockets.get(chatId);
-		if (ws && ws.readyState) return String(ws?.readyState)
-		else return String('ws not found');
+	public getStatus(chatId: string): number | undefined {
+		const userSocket = this.userSockets.get(chatId);
+		if (userSocket?.ws && userSocket.ws.readyState) return userSocket.ws.readyState;
+		else return undefined;
 	}
 }
 

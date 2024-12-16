@@ -5,6 +5,7 @@ import { handleCommandsWS } from "./handlers/commandsWS";
 import { handleMessages } from "./handlers/messages";
 import { handleAuth } from "./handlers/auth";
 import WebSocketClient from "./services/websocketClient";
+import { getUsersFromFile } from "../utils/file";
 
 dotenv.config();
 
@@ -19,6 +20,9 @@ if (!token) {
 	handleCommandsWS(bot);
 	handleMessages(bot);
 	handleAuth(bot);
+	const users = await getUsersFromFile();
+	users.forEach((user: [string, any]) => wsClient.addUser(user[0], user[1].initialMessage))
+
 	console.log('Started telegram bot')
 }
 
