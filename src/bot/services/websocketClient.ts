@@ -59,9 +59,14 @@ class WebSocketClient {
 				}, 10000);
 			});
 
-			this.userSockets.set(chatId, { ws, initialMessage });
-			let data = JSON.stringify([...this.userSockets.entries()]);
-			fs.writeFileSync('files/usersws.json', data);
+			try {
+				let data = JSON.stringify([...this.userSockets.entries()]);
+				fs.writeFileSync('files/usersws.json', data);
+			} catch (e) {
+				console.log(new Date());
+				console.log(e);
+				setTimeout(() => connect(), 10000);
+			}
 		};
 
 		connect();
