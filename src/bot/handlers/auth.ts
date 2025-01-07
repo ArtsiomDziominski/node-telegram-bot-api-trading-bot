@@ -1,11 +1,9 @@
 import TelegramBot from 'node-telegram-bot-api';
 import axios from "axios";
 import { encryptPassword } from "../../utils/encrypt";
-import WebSocketClient from "../services/websocketClient";
 
 
 export const handleAuth = (bot: TelegramBot) => {
-	const wsClient = WebSocketClient.getInstance(bot);
 	const BURL = process.env.SERVER_URL;
 	const userLoginRequest: Record<string, any> = {};
 
@@ -30,7 +28,6 @@ export const handleAuth = (bot: TelegramBot) => {
 				}).then((response: any) => {
 				const token = response?.data?.token
 				if (token) {
-					wsClient.sendMessage(chatId, {authorization: token});
 					bot.sendMessage(chatId, 'Вы успешно вошли');
 				} else bot.sendMessage(chatId, 'Не удалось получить токен');
 			}).catch((error: any) => {
@@ -41,7 +38,6 @@ export const handleAuth = (bot: TelegramBot) => {
 	});
 
 	bot.onText(/\/logout/, (msg: any) => {
-		wsClient.removeUser(msg.chat.id);
 		bot.sendMessage(msg.chat.id, 'Вы успешно вышли. Для входа используйте команду /login');
 	});
 };
