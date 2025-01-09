@@ -21,23 +21,24 @@ export const handleAuth = (bot: TelegramBot) => {
 		} else if (userLoginRequest?.[chatId]?.isPassword) {
 			userLoginRequest[chatId].isPassword = false;
 			const passwordEncrypt = encryptPassword(text);
-			axios.post(BURL + '/auth/login',
+			axios.post(BURL + '/auth/login/telegram',
 				{
 					mail: userLoginRequest[chatId].mail,
-					password: passwordEncrypt
+					password: passwordEncrypt,
+					tgId: chatId,
 				}).then((response: any) => {
-				const token = response?.data?.token
-				if (token) {
-					bot.sendMessage(chatId, 'Вы успешно вошли');
-				} else bot.sendMessage(chatId, 'Не удалось получить токен');
-			}).catch((error: any) => {
-				bot.sendMessage(chatId, error?.response?.data?.message || 'Не удалось выполнить вход');
-			})
+				if (response?.data?.success) bot.sendMessage(chatId, response?.data?.message || 'Вы успешно вошли');
+				else bot.sendMessage(chatId, response?.data?.message || 'Не удалось получить токен');
+			}).catch((error: any) => bot.sendMessage(chatId, error?.response?.data?.message || 'Не удалось выполнить вход'))
 			delete userLoginRequest[chatId];
 		}
 	});
 
 	bot.onText(/\/logout/, (msg: any) => {
-		bot.sendMessage(msg.chat.id, 'Вы успешно вышли. Для входа используйте команду /login');
+		const chatId = msg.chat.id.toString();
+		axios.delete(BURL + '/auth/loginout/telegram', {data: { tgId: chatId }})
+			.then((response: any) => bot.sendMessage(msg.chat.id, response?.data?.message || 'Вы успешно вышли. Для входа используйте команду /login'))
+			.catch((error: any) => bot.sendMessage(msg.chat.id, error?.data?.message || 'Не удалось выйти'))
+
 	});
 };
