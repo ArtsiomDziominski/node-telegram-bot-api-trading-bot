@@ -10,7 +10,15 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
 	console.error('Токен Telegram бота не найден в переменных окружения');
 } else {
-	const bot = new TelegramBot(token, { polling: true });
+	const bot = new TelegramBot(token, {
+		polling: {
+			interval: 300,
+			autoStart: true,
+			params: {
+				timeout: 10
+			}
+		}
+	});
 
 	handleCommands(bot);
 	handleMessages(bot);
