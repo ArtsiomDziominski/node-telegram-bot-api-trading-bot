@@ -29,7 +29,7 @@ export const handleAuth = (bot: TelegramBot) => {
 		} else if (userLoginRequest?.[chatId]?.isPassword) {
 			userLoginRequest[chatId].isPassword = false;
 			const passwordEncrypt = encryptPassword(text);
-			axios.post(BURL + '/auth/login/telegram',
+			axios.post(BURL + '/telegram/login',
 				{
 					mail: userLoginRequest[chatId].mail,
 					password: passwordEncrypt,
@@ -37,7 +37,11 @@ export const handleAuth = (bot: TelegramBot) => {
 				}).then((response: any) => {
 				if (response?.data?.success) bot.sendMessage(chatId, response?.data?.message || 'Вы успешно вошли');
 				else bot.sendMessage(chatId, response?.data?.message || 'Не удалось получить токен');
-			}).catch((error: any) => bot.sendMessage(chatId, error?.response?.data?.message || 'Не удалось выполнить вход'))
+			}).catch((error: any) => {
+				bot.sendMessage(chatId, error?.response?.data?.message || 'Не удалось войти. Внутренняя ошибка');
+				const date = new Date().toISOString().replace('T', ' ').split('.')?.[0];
+				console.log(`${date} Ошибка на сервере при входе`);
+			})
 			clearUserLoginRequest(chatId);
 		}
 	});
